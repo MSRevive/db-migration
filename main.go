@@ -7,9 +7,13 @@ import (
 	"database/sql"
 	"io"
 	"context"
+	"time"
 
 	_ "modernc.org/sqlite"
 	"github.com/spf13/pflag"
+	//"github.com/msrevive/nexus2/pkg/database/schema"
+	"github.com/msrevive/nexus2/pkg/utils"
+	"github.com/google/uuid"
 )
 
 type flags struct {
@@ -18,6 +22,20 @@ type flags struct {
 
 	destDB string
 	destDBFile string
+}
+
+type oldPlayer struct {
+	ID uuid.UUID
+	CreatedAt time.Time
+	SteamID string
+}
+
+type oldChar struct {
+	ID uuid.UUID
+	CreatedAt time.Time
+	Slot int
+	Size int
+	Data string
 }
 
 func doFlags(args []string) *flags {
@@ -83,6 +101,7 @@ func main() {
 		fmt.Println("Created original database backup.")
 
 		// Open SQLite connection
+		fmt.Println("Opening SQLite file")
 		sqliteConnStr := "file:" + oldDbFileName + "?cache=shared&mode=rwc&_fk=1"
 		db, err := sql.Open("sqlite", sqliteConnStr)
 		if err != nil {
@@ -90,13 +109,59 @@ func main() {
 		}
 		defer db.Close()
 
-		// PLACEHOLDER
-		stmt, err := db.PrepareContext(context.TODO(), `SELECT * FROM 'characters'`)
+		playerRows, err := db.Query("SELECT id, steamid, created_at FROM players")
 		if err != nil {
 			panic(err)
 		}
-		defer stmt.Close()
+		defer playerRows.Close()
+
+		for playerRows.Next() {
+			var oldPlayer oldPlayer
+
+			if err := rows.Scan(&oldPlayer.ID, &oldPlayer.SteamID, &oldPlayer.CreatedAt); err != nil {
+				panic(err)
+			}
+
+			var oldChar oldChar
+			charRow := db.QueryRow("SELECT id, created_at, slot, size, data FROM characters WHERE player_id = ? AND version = ? LIMIT 1", oldPlayer.ID, 1)
+			if err := charRow.Scan(&oldChar.ID, &oldChar.CreateAt, &oldChar.Slot, &oldChar.Size, &oldChar.Data); err != nil {
+				panic(err)
+			}
+
+			newUser := schema.User{
+				ID: oldPlayer.SteamID,
+				Characters: make(map[int]uuid.UUID),
+				DeletedCharacters: make(map[int]uuid.UUID),
+			}
+			newUser.Characters[oldChar.Slot] = oldChar.ID
+
+			// newCharData := schema.CharacterData {
+			// 	CreatedAt: oldChar.CreatedAt,
+			// 	Size: oldChar.Size,
+			// 	Data: oldChar.Data,
+			// }
+			newChar := schema.Character{
+				ID: oldChar.ID,
+				SteamID: oldPlayer.SteamID,
+				Slot: oldChar.Slot,
+				CreatedAt: oldChar.CreateAt,
+				Data: schema.CharacterData {
+					CreatedAt: oldChar.CreatedAt,
+					Size: oldChar.Size,
+					Data: oldChar.Data,
+				},
+				Versions: make([]schema.CharacterData),
+			}
+		}
 	}else{
 		panic("unsupported database!")
 	}
+}
+
+func insertUser() error {
+
+}
+
+func insertCharacter() error {
+
 }

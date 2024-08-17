@@ -6,13 +6,12 @@ import (
 	"errors"
 	"database/sql"
 	"io"
-	"context"
+	//"context"
 	"time"
 
 	_ "modernc.org/sqlite"
 	"github.com/spf13/pflag"
-	//"github.com/msrevive/nexus2/pkg/database/schema"
-	"github.com/msrevive/nexus2/pkg/utils"
+	"github.com/msrevive/nexus2/pkg/database/schema"
 	"github.com/google/uuid"
 )
 
@@ -118,13 +117,13 @@ func main() {
 		for playerRows.Next() {
 			var oldPlayer oldPlayer
 
-			if err := rows.Scan(&oldPlayer.ID, &oldPlayer.SteamID, &oldPlayer.CreatedAt); err != nil {
+			if err := playerRows.Scan(&oldPlayer.ID, &oldPlayer.SteamID, &oldPlayer.CreatedAt); err != nil {
 				panic(err)
 			}
 
 			var oldChar oldChar
 			charRow := db.QueryRow("SELECT id, created_at, slot, size, data FROM characters WHERE player_id = ? AND version = ? LIMIT 1", oldPlayer.ID, 1)
-			if err := charRow.Scan(&oldChar.ID, &oldChar.CreateAt, &oldChar.Slot, &oldChar.Size, &oldChar.Data); err != nil {
+			if err := charRow.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Slot, &oldChar.Size, &oldChar.Data); err != nil {
 				panic(err)
 			}
 
@@ -144,13 +143,22 @@ func main() {
 				ID: oldChar.ID,
 				SteamID: oldPlayer.SteamID,
 				Slot: oldChar.Slot,
-				CreatedAt: oldChar.CreateAt,
+				CreatedAt: oldChar.CreatedAt,
 				Data: schema.CharacterData {
 					CreatedAt: oldChar.CreatedAt,
 					Size: oldChar.Size,
 					Data: oldChar.Data,
 				},
-				Versions: make([]schema.CharacterData),
+			}
+
+			fmt.Printf("Importing user %s", newUser.ID)
+			if err := insertUser(newUser); err != nil {
+				panic(err)
+			}
+
+			fmt.Printf("Importing character slot %d", newChar.Slot)
+			if err := insertChar(newChar); err != nil {
+				panic(err)
 			}
 		}
 	}else{
@@ -158,10 +166,10 @@ func main() {
 	}
 }
 
-func insertUser() error {
-
+func insertUser(user schema.User) error {
+	return nil
 }
 
-func insertCharacter() error {
-
+func insertChar(char schema.Character) error {
+	return nil
 }

@@ -100,7 +100,7 @@ func main() {
 		}
 
 		fmt.Println("Opening connection to new database")
-		newDB, err := bbolt.Open(flags.destDBFile, 0755)
+		newDB, err := bbolt.Open(flags.destDBFile, 0755, &bbolt.Options{Timeout: 15 * time.Second})
 		if err != nil {
 			panic(err)
 		}
@@ -140,10 +140,10 @@ func main() {
 				DeletedCharacters: make(map[int]uuid.UUID),
 			}
 
-			var oldCharSlot1 oldChar
 			charRowSlot1 := db.QueryRow("SELECT id, created_at, size, data FROM characters WHERE player_id = ? AND version = 1 AND slot = ?", oldPlayer.ID, 0)
 			if err := charRowSlot1.Err(); err == nil {
-				charRow.Scan(&oldCharSlot1.ID, &oldCharSlot1.CreatedAt, &oldCharSlot1.Size, &oldCharSlot1.Data)
+				var oldChar oldChar
+				charRowSlot1.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data)
 
 				newUser.Characters[1] = oldChar.ID
 
@@ -165,10 +165,10 @@ func main() {
 				}
 			}
 
-			var oldCharSlot2 oldChar
 			charRowSlot2 := db.QueryRow("SELECT id, created_at, size, data FROM characters WHERE player_id = ? AND version = 1 AND slot = ?", oldPlayer.ID, 1)
 			if err := charRowSlot2.Err(); err == nil {
-				charRow.Scan(&oldCharSlot2.ID, &oldCharSlot2.CreatedAt, &oldCharSlot2.Size, &oldCharSlot2.Data)
+				var oldChar oldChar
+				charRowSlot2.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data)
 
 				newUser.Characters[2] = oldChar.ID
 
@@ -190,10 +190,10 @@ func main() {
 				}
 			}
 
-			var oldCharSlot3 oldChar
 			charRowSlot3 := db.QueryRow("SELECT id, created_at, size, data FROM characters WHERE player_id = ? AND version = 1 AND slot = ?", oldPlayer.ID, 2)
 			if err := charRowSlot3.Err(); err == nil {
-				charRow.Scan(&oldCharSlot3.ID, &oldCharSlot3.CreatedAt, &oldCharSlot3.Size, &oldCharSlot3.Data)
+				var oldChar oldChar
+				charRowSlot3.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data)
 
 				newUser.Characters[3] = oldChar.ID
 
@@ -227,7 +227,7 @@ func main() {
 
 func createBucket(db *bbolt.DB) error {
 	if err := db.Update(func(tx *bbolt.Tx) error {
-		_, err = tx.CreateBucketIfNotExists([]byte("users"))
+		_, err := tx.CreateBucketIfNotExists([]byte("users"))
 		if err != nil {
 			return fmt.Errorf("failed to create users bucket: %s", err)
 		}
@@ -242,12 +242,45 @@ func createBucket(db *bbolt.DB) error {
 		return err
 	}
 
+	return nil
 } 
 
 func insertUser(db *bbolt.DB, user schema.User) error {
+	userData, err := bsoncoder.Encode(&user)
+	if err != nil {
+		return fmt.Errorf("bson: failed to marshal user %v", err)
+	}
+
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		bUser := tx.Bucket([]byte("users"))
+		if err := bUser.Put([]byte(user.ID), userData); err != nil {
+			return fmt.Errorf("bbolt: failed to put in users", err)
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func insertChar(db *bbolt.DB, char schema.Character) error {
+	charData, err := bsoncoder.Encode(&char)
+	if err != nil {
+		return fmt.Errorf("bson: failed to marshal character %v", err)
+	}
+
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		bChar := tx.Bucket([]byte("characters"))
+		if err := bChar.Put([]byte(char.ID.String()), charData); err != nil {
+			return fmt.Errorf("bbolt: failed to put in characters", err)
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }

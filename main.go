@@ -49,27 +49,34 @@ func doFlags(args []string) *flags {
 	flagSet.StringVar(&flgs.destDB, "destdb", "bbolt", "Database to migrate to.")
 	flagSet.StringVar(&flgs.destDBFile, "destdbfile", "", "What should the destination database file be name.")
 
+	flagSet.Parse(args[1:])
+
 	return flgs
 }
 
 func main() {
-	fmt.Println("Starting database migration operation...")
-
 	// Handle argument flags
 	flags := doFlags(os.Args)
 
+	fmt.Printf("Starting application with arguements %s\n", os.Args[1:])
+
 	if flags.originDBFile == "" {
-		panic("no origin database file supplied!")
+		fmt.Println("ERROR: no origin DB supplied!")
+		os.Exit(1)
 	}
 
 	if flags.destDBFile == "" {
-		panic("no destination database file supplied!")
+		fmt.Println("ERROR: no destination DB supplied!")
+		os.Exit(1)
 	}
 
 	if _, err := os.Stat(flags.originDBFile); errors.Is(err, os.ErrNotExist) {
-		panic("original database file doesn't exist!")
+		fmt.Printf("ERROR: unable to find origin DB file! %s\n", flags.originDBFile)
+		os.Exit(1)
 	}
 
+	fmt.Println("Beginning migration of DB...")
+	start := time.Now()
 	if flags.originDB == "sqlite" && flags.destDB == "bbolt" {
 		/////////////////////////////////////////////////
 		/////////// Prepare DB files
@@ -133,6 +140,7 @@ func main() {
 				panic(err)
 			}
 
+			fmt.Printf("Starting migration for %s\n", oldPlayer.SteamID)
 			// we create the new user structure here so character's can be filled in when we get them.
 			newUser := schema.User{
 				ID: oldPlayer.SteamID,
@@ -159,7 +167,7 @@ func main() {
 					},
 				}
 
-				fmt.Printf("Importing character slot %d", newChar.Slot)
+				fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", newChar.Slot, oldPlayer.SteamID, newChar.ID)
 				if err := insertChar(newDB, newChar); err != nil {
 					panic(err)
 				}
@@ -184,7 +192,7 @@ func main() {
 					},
 				}
 
-				fmt.Printf("Importing character slot %d", newChar.Slot)
+				fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", newChar.Slot, oldPlayer.SteamID, newChar.ID)
 				if err := insertChar(newDB, newChar); err != nil {
 					panic(err)
 				}
@@ -209,13 +217,13 @@ func main() {
 					},
 				}
 
-				fmt.Printf("Importing character slot %d", newChar.Slot)
+				fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", newChar.Slot, oldPlayer.SteamID, newChar.ID)
 				if err := insertChar(newDB, newChar); err != nil {
 					panic(err)
 				}
 			}
 
-			fmt.Printf("Importing user %s", newUser.ID)
+			fmt.Printf("Importing user %s\n\n", newUser.ID)
 			if err := insertUser(newDB, newUser); err != nil {
 				panic(err)
 			}
@@ -223,6 +231,9 @@ func main() {
 	}else{
 		panic("unsupported database!")
 	}
+
+	fmt.Printf("Migration finished, took %v\n", time.Since(start))
+	os.Exit(0)
 }
 
 func createBucket(db *bbolt.DB) error {

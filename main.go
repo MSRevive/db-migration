@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"os"
 	"errors"
-	"database/sql"
-	"io"
 	//"context"
 	"time"
 
-	"github.com/msrevive/nexus2/db-migration/internal/migrate"
-	"github.com/msrevive/nexus2/db-migration/internal/migrate/bboltdb"
-	"github.com/msrevive/nexus2/db-migration/internal/migrate/badgerdb"
+	"github.com/msrevive/db-migration/internal/migrate"
+	"github.com/msrevive/db-migration/internal/migrate/bboltdb"
+	"github.com/msrevive/db-migration/internal/migrate/badgerdb"
 
 	_ "modernc.org/sqlite"
 	"github.com/spf13/pflag"
@@ -23,20 +21,6 @@ type flags struct {
 
 	destDB string
 	destDBFile string
-}
-
-type oldPlayer struct {
-	ID uuid.UUID
-	CreatedAt time.Time
-	SteamID string
-}
-
-type oldChar struct {
-	ID uuid.UUID
-	CreatedAt time.Time
-	Slot int
-	Size int
-	Data string
 }
 
 func doFlags(args []string) *flags {

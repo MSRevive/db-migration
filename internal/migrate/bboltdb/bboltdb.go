@@ -3,13 +3,11 @@ package bboltdb
 import (
 	"fmt"
 	"os"
-	"errors"
 	"database/sql"
 	"io"
 	"time"
 
 	_ "modernc.org/sqlite"
-	"github.com/spf13/pflag"
 	"github.com/msrevive/nexus2/pkg/database/schema"
 	"github.com/msrevive/nexus2/pkg/database/bsoncoder"
 	"github.com/google/uuid"
@@ -18,6 +16,20 @@ import (
 
 type bboltDB struct {
 	db *bbolt.DB
+}
+
+type oldPlayer struct {
+	ID uuid.UUID
+	CreatedAt time.Time
+	SteamID string
+}
+
+type oldChar struct {
+	ID uuid.UUID
+	CreatedAt time.Time
+	Slot int
+	Size int
+	Data string
 }
 
 func New() *bboltDB {
@@ -124,9 +136,9 @@ func (b *bboltDB) Migrate(originDBFile string, destDBFile string) error {
 	}
 
 	fmt.Println("Opening connection to new database")
-	b.db, err := bbolt.Open(destDBFile, 0755, &bbolt.Options{Timeout: 15 * time.Second})
+	b.db, err = bbolt.Open(destDBFile, 0755, &bbolt.Options{Timeout: 15 * time.Second})
 	if err != nil {
-		return fmt.Errorf("unable to open BBolt DB: %v", err)
+		return fmt.Errorf("bbolt: unable to open database %v", err)
 	}
 	defer b.db.Close()
 

@@ -29,7 +29,7 @@ func doFlags(args []string) *flags {
 	flagSet := pflag.NewFlagSet(args[0], pflag.ExitOnError)
 	flagSet.StringVar(&flgs.originDBFile, "origindbfile", "", "Original database file.")
 
-	flagSet.StringVar(&flgs.destDB, "destdb", "bbolt", "Database to migrate to.")
+	flagSet.StringVar(&flgs.destDB, "destdb", "badger", "Database to migrate to.")
 	flagSet.StringVar(&flgs.destDBFile, "destdbfile", "", "What should the destination database file be name.")
 
 	flagSet.Parse(args[1:])

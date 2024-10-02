@@ -11,7 +11,7 @@ import (
 	"github.com/msrevive/nexus2/pkg/database/schema"
 	"github.com/msrevive/nexus2/pkg/database/bsoncoder"
 	"github.com/google/uuid"
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v4"
 )
 
 var (
@@ -98,7 +98,7 @@ func (b *badgerDB) Migrate(originDBFile string, destDBFile string) error {
 	// 1. Copy current DB file (prevents irreversible changes)
 	// 2. Rename current DB file (prevents conflicts with new DB)
 	dbBakFileName := originDBFile + ".bak"
-	oldDbFileName := "./runtime/old_database.db"
+	//oldDbFileName := "./runtime/old_database.db"
 
 	currentDbFile, err := os.Open(originDBFile)
 	if err != nil {
@@ -117,10 +117,6 @@ func (b *badgerDB) Migrate(originDBFile string, destDBFile string) error {
 	currentDbFile.Close()
 	backupDbFile.Close()
 
-	if err := os.Rename(originDBFile, oldDbFileName); err != nil {
-		return fmt.Errorf("failed to rename original DB file: %v", err)
-	}
-
 	fmt.Println("Opening connection to new database")
 	b.db, err = badger.Open(badger.DefaultOptions(destDBFile))
 	if err != nil {
@@ -130,7 +126,7 @@ func (b *badgerDB) Migrate(originDBFile string, destDBFile string) error {
 
 	// Open SQLite connection
 	fmt.Println("Opening SQLite file")
-	sqliteConnStr := "file:" + oldDbFileName + "?cache=shared&mode=rwc&_fk=1"
+	sqliteConnStr := "file:" + originDBFile + "?cache=shared&mode=rwc&_fk=1"
 	db, err := sql.Open("sqlite", sqliteConnStr)
 	if err != nil {
 		return fmt.Errorf("unable to open SQLite DB", err)
@@ -155,7 +151,7 @@ func (b *badgerDB) Migrate(originDBFile string, destDBFile string) error {
 			continue
 		}
 
-		fmt.Printf("Starting migration for %s\n", oldPlayer.SteamID)
+		fmt.Printf("Starting migration for %s Acc:%s\n", oldPlayer.SteamID, oldPlayer.ID)
 		// we create the new user structure here so character's can be filled in when we get them.
 		newUser := schema.User{
 			ID: oldPlayer.SteamID,
@@ -166,32 +162,65 @@ func (b *badgerDB) Migrate(originDBFile string, destDBFile string) error {
 		charRowSlot1 := db.QueryRow("SELECT id, created_at, size, data FROM characters WHERE player_id = ? AND version = 1 AND slot = ?", oldPlayer.ID, 0)
 		if err := charRowSlot1.Err(); err == nil {
 			var oldChar oldChar
-			charRowSlot1.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data)
+			if err := charRowSlot1.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data); err == nil {
+				newUser.Characters[0] = oldChar.ID
 
-			newUser.Characters[1] = oldChar.ID
-
-			newChar := schema.Character{
-				ID: oldChar.ID,
-				SteamID: oldPlayer.SteamID,
-				Slot: 1,
-				CreatedAt: oldChar.CreatedAt,
-				Data: schema.CharacterData {
+				newChar := schema.Character{
+					ID: oldChar.ID,
+					SteamID: oldPlayer.SteamID,
+					Slot: 0,
 					CreatedAt: oldChar.CreatedAt,
-					Size: oldChar.Size,
-					Data: oldChar.Data,
-				},
-			}
+					Data: schema.CharacterData {
+						CreatedAt: oldChar.CreatedAt,
+						Size: oldChar.Size,
+						Data: oldChar.Data,
+					},
+				}
 
-			fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", newChar.Slot, oldPlayer.SteamID, newChar.ID)
-			if err := b.InsertChar(newChar); err != nil {
-				return err
+				fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", newChar.Slot, oldPlayer.SteamID, newChar.ID)
+				if err := b.InsertChar(newChar); err != nil {
+					return err
+				}
+			}else{
+				fmt.Printf("No character found 0 for SteamID:%s - %v\n", oldPlayer.SteamID, err)
 			}
+		}else{
+			fmt.Printf("QUERY ERROR: %v\n", err)
 		}
 
 		charRowSlot2 := db.QueryRow("SELECT id, created_at, size, data FROM characters WHERE player_id = ? AND version = 1 AND slot = ?", oldPlayer.ID, 1)
 		if err := charRowSlot2.Err(); err == nil {
 			var oldChar oldChar
 			if err := charRowSlot2.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data); err == nil {
+				newUser.Characters[1] = oldChar.ID
+
+				newChar := schema.Character{
+					ID: oldChar.ID,
+					SteamID: oldPlayer.SteamID,
+					Slot: 1,
+					CreatedAt: oldChar.CreatedAt,
+					Data: schema.CharacterData {
+						CreatedAt: oldChar.CreatedAt,
+						Size: oldChar.Size,
+						Data: oldChar.Data,
+					},
+				}
+
+				fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", newChar.Slot, oldPlayer.SteamID, newChar.ID)
+				if err := b.InsertChar(newChar); err != nil {
+					return err
+				}
+			}else{
+				fmt.Printf("No character found 1 for SteamID:%s - %v\n", oldPlayer.SteamID, err)
+			}
+		}else{
+			fmt.Printf("QUERY ERROR: %v\n", err)
+		}
+
+		charRowSlot3 := db.QueryRow("SELECT id, created_at, size, data FROM characters WHERE player_id = ? AND version = 1 AND slot = ?", oldPlayer.ID, 2)
+		if err := charRowSlot3.Err(); err == nil {
+			var oldChar oldChar
+			if err := charRowSlot3.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data); err == nil {
 				newUser.Characters[2] = oldChar.ID
 
 				newChar := schema.Character{
@@ -210,32 +239,11 @@ func (b *badgerDB) Migrate(originDBFile string, destDBFile string) error {
 				if err := b.InsertChar(newChar); err != nil {
 					return err
 				}
+			}else{
+				fmt.Printf("No character found 2 for SteamID:%s - %v\n", oldPlayer.SteamID, err)
 			}
-		}
-
-		charRowSlot3 := db.QueryRow("SELECT id, created_at, size, data FROM characters WHERE player_id = ? AND version = 1 AND slot = ?", oldPlayer.ID, 2)
-		if err := charRowSlot3.Err(); err == nil {
-			var oldChar oldChar
-			if err := charRowSlot3.Scan(&oldChar.ID, &oldChar.CreatedAt, &oldChar.Size, &oldChar.Data); err == nil {
-				newUser.Characters[3] = oldChar.ID
-
-				newChar := schema.Character{
-					ID: oldChar.ID,
-					SteamID: oldPlayer.SteamID,
-					Slot: 3,
-					CreatedAt: oldChar.CreatedAt,
-					Data: schema.CharacterData {
-						CreatedAt: oldChar.CreatedAt,
-						Size: oldChar.Size,
-						Data: oldChar.Data,
-					},
-				}
-
-				fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", newChar.Slot, oldPlayer.SteamID, newChar.ID)
-				if err := b.InsertChar(newChar); err != nil {
-					return err
-				}
-			}
+		}else{
+			fmt.Printf("QUERY ERROR: %v\n", err)
 		}
 
 		fmt.Printf("Importing user %s\n\n", newUser.ID)

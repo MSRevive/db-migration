@@ -14,6 +14,11 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+var (
+	UserBucket = []byte("users:")
+	CharBucket = []byte("chars:")
+)
+
 type bboltDB struct {
 	db *bbolt.DB
 }
@@ -40,12 +45,12 @@ func New() *bboltDB {
 
 func createBucket(db *bbolt.DB) error {
 	if err := db.Update(func(tx *bbolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("users"))
+		_, err := tx.CreateBucketIfNotExists(UserBucket)
 		if err != nil {
 			return fmt.Errorf("failed to create users bucket: %s", err)
 		}
 
-		_, err = tx.CreateBucketIfNotExists([]byte("characters"))
+		_, err = tx.CreateBucketIfNotExists(CharBucket)
 		if err != nil {
 			return fmt.Errorf("failed to create characters bucket: %s", err)
 		}
@@ -69,7 +74,7 @@ func (b *bboltDB) InsertChar(char schema.Character) error {
 	}
 
 	if err := b.db.Update(func(tx *bbolt.Tx) error {
-		bChar := tx.Bucket([]byte("characters"))
+		bChar := tx.Bucket(CharBucket)
 		if err := bChar.Put([]byte(char.ID.String()), charData); err != nil {
 			return fmt.Errorf("bbolt: failed to put in characters", err)
 		}
@@ -93,7 +98,7 @@ func (b *bboltDB) InsertUser(user schema.User) error {
 	}
 
 	if err := b.db.Update(func(tx *bbolt.Tx) error {
-		bUser := tx.Bucket([]byte("users"))
+		bUser := tx.Bucket(UserBucket)
 		if err := bUser.Put([]byte(user.ID), userData); err != nil {
 			return fmt.Errorf("bbolt: failed to put in users", err)
 		}

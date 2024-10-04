@@ -16,7 +16,7 @@ import (
 
 var (
 	UserPrefix = []byte("users:")
-	CharPrefix = []byte("characters:")
+	CharPrefix = []byte("chars:")
 )
 
 type badgerDB struct {

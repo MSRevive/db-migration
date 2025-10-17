@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 	"errors"
-	//"context"
 	"time"
+	"log"
+	"io"
 
 	"github.com/msrevive/db-migration/internal/migrate"
 	"github.com/msrevive/db-migration/internal/migrate/bboltdb"
@@ -74,6 +75,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// create logger
+	file, err := os.OpenFile("./runtime/migration.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	writer := io.MultiWriter(os.Stdout, file)
+	log.SetOutput(writer)
+
+	// actually start migration now
 	fmt.Printf("Beginning migration of DB to %s...\n", flags.destDB)
 	start := time.Now()
 

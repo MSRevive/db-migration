@@ -2,6 +2,7 @@ package pebbledb
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/msrevive/nexus2/pkg/database/schema"
 	"github.com/msrevive/db-migration/internal/bsoncoder"
@@ -101,7 +102,11 @@ func (b *pebbleDB) Migrate(originDB string, destDB string) error {
 
 	fmt.Println("Migrating users to new DB")
 	for _, value := range users {
-		fmt.Printf("Importing user %s...\n", value.ID)
+		log.Printf("Importing user %s...\n", value.ID)
+
+		if (len(value.Characters) <= 0) {
+			log.Printf("User has no characters! %s Skipping\n", value.ID)
+		}
 
 		value.DeletedCharacters = nil
 		if err := b.InsertUser(value); err != nil {
@@ -138,14 +143,14 @@ func (b *pebbleDB) Migrate(originDB string, destDB string) error {
 
 	fmt.Println("Migrating characters to new DB")
 	for _, oldChar := range characters {
-		fmt.Printf("Importing character slot %d for SteamID:%s - %s\n", oldChar.Slot, oldChar.SteamID, oldChar.ID.String())
+		log.Printf("Importing character slot %d for SteamID:%s - %s\n", oldChar.Slot, oldChar.SteamID, oldChar.ID.String())
 		if (oldChar.ID == uuid.Nil) || (oldChar.SteamID == "") {
-			fmt.Printf("Character slot %d for SteamID:%s - %s is malformed! Skipping.\n")
+			log.Printf("Character slot %d for SteamID:%s - %s is malformed! Skipping.\n", oldChar.Slot, oldChar.SteamID, oldChar.ID.String())
 			continue
 		}
 
 		if oldChar.DeletedAt != nil {
-			fmt.Printf("Character slot %d for SteamID:%s - %s has been deleted! Skipping.\n")
+			log.Printf("Character slot %d for SteamID:%s - %s has been deleted! Skipping.\n", oldChar.Slot, oldChar.SteamID, oldChar.ID.String())
 			continue
 		}
 

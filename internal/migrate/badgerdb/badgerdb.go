@@ -9,7 +9,7 @@ import (
 
 	_ "modernc.org/sqlite"
 	"github.com/msrevive/nexus2/pkg/database/schema"
-	"github.com/msrevive/nexus2/pkg/database/bsoncoder"
+	"github.com/msrevive/db-migration/internal/bsoncoder"
 	"github.com/google/uuid"
 	"github.com/dgraph-io/badger/v4"
 )

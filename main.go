@@ -10,6 +10,7 @@ import (
 	"github.com/msrevive/db-migration/internal/migrate"
 	"github.com/msrevive/db-migration/internal/migrate/bboltdb"
 	"github.com/msrevive/db-migration/internal/migrate/badgerdb"
+	"github.com/msrevive/db-migration/internal/migrate/pebbledb"
 
 	_ "modernc.org/sqlite"
 	"github.com/spf13/pflag"
@@ -66,6 +67,8 @@ func main() {
 		migration = bboltdb.New()
 	case "badger":
 		migration = badgerdb.New()
+	case "pebble":
+		migration = pebbledb.New()
 	default:
 		fmt.Printf("ERROR: destination DB type not supported %s\n", flags.destDB)
 		os.Exit(1)

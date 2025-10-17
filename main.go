@@ -76,6 +76,9 @@ func main() {
 	}
 
 	// create logger
+	if _, err := os.Stat("./runtime/migration.log"); !errors.Is(err, os.ErrNotExist) {
+		os.Remove("./runtime/migration.log")
+	}
 	file, err := os.OpenFile("./runtime/migration.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)

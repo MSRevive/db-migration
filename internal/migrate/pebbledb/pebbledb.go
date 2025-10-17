@@ -100,7 +100,7 @@ func (b *pebbleDB) Migrate(originDB string, destDB string) error {
 		return fmt.Errorf("badger: cannot view DB for users %v", err)
 	}
 
-	fmt.Println("Migrating users to new DB")
+	log.Printf("Migrating %d users to new DB\n", len(users))
 	for _, value := range users {
 		log.Printf("Importing user %s...\n", value.ID)
 
@@ -141,7 +141,7 @@ func (b *pebbleDB) Migrate(originDB string, destDB string) error {
 		return fmt.Errorf("badger: cannot view DB for characters %v", err)
 	}
 
-	fmt.Println("Migrating characters to new DB")
+	log.Printf("Migrating %d characters to new DB\n", len(characters))
 	for _, oldChar := range characters {
 		log.Printf("Importing character slot %d for SteamID:%s - %s\n", oldChar.Slot, oldChar.SteamID, oldChar.ID.String())
 		if (oldChar.ID == uuid.Nil) || (oldChar.SteamID == "") {

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	_ "modernc.org/sqlite"
-	"github.com/msrevive/nexus2/pkg/database/schema"
+	"github.com/msrevive/db-migration/internal/schema"
 	"github.com/msrevive/db-migration/internal/bsoncoder"
 	"github.com/google/uuid"
 	"go.etcd.io/bbolt"

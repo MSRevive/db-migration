@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/msrevive/nexus2/pkg/database/schema"
+	"github.com/msrevive/db-migration/internal/schema"
 	"github.com/msrevive/db-migration/internal/bsoncoder"
 	"github.com/google/uuid"
 	"github.com/dgraph-io/badger/v4"
@@ -32,7 +32,8 @@ func (b *pebbleDB) InsertChar(char schema.Character) error {
 		return fmt.Errorf("DB object is nil!")
 	}
 
-	charData, err := cbor.Marshal(&char)
+	fmt.Println(char.ID.String())
+	charData, err := cbor.Marshal(char)
 	if err != nil {
 		return fmt.Errorf("cbor: failed to marshal character %v", err)
 	}
@@ -46,7 +47,7 @@ func (b *pebbleDB) InsertUser(user schema.User) error {
 		return fmt.Errorf("DB object is nil!")
 	}
 	
-	userData, err := cbor.Marshal(&user)
+	userData, err := cbor.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("cbor: failed to marshal user %v", err)
 	}

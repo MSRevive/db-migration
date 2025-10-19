@@ -7,7 +7,6 @@ require (
 	github.com/dgraph-io/badger/v4 v4.3.0
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/google/uuid v1.6.0
-	github.com/msrevive/nexus2 v1.3.2-0.20240930182200-b6bb7d15d9c2
 	github.com/spf13/pflag v1.0.5
 	go.etcd.io/bbolt v1.3.10
 	go.mongodb.org/mongo-driver v1.16.1

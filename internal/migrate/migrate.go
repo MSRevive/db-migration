@@ -1,7 +1,7 @@
 package migrate
 
 import (
-	"github.com/msrevive/nexus2/pkg/database/schema"
+	"github.com/msrevive/db-migration/internal/schema"
 )
 
 type Migrate interface {
